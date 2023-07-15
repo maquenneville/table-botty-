@@ -6,7 +6,7 @@ TableBotty is a powerful data table management assistant that leverages OpenAI's
 - Adding and dropping columns
 - Condensing tables with multiple entries per object
 - Dropping rows via plain english conditionals
-- Applying GPT-generated functions to columns, using other columns, to pwrform operations 
+- Applying GPT-generated functions to columns, using other columns, to perform operations 
 
 # Installation
 1. Install Python (version 3.6 or higher is recommended).
@@ -15,11 +15,13 @@ TableBotty is a powerful data table management assistant that leverages OpenAI's
 
 git clone https://github.com/maquenneville/TableBotty.git
 
-3. Navigate to the TableBotty directory:
+3. Update the config.ini file with your personal OpenAI API key
+
+4. Navigate to the TableBotty directory:
 
 cd TableBotty
 
-4. Install the required packages:
+5. Install the required packages:
 
 pip install -r requirements.txt
 
