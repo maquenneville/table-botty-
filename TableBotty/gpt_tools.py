@@ -29,6 +29,74 @@ def get_columns(file_name):
         return columns
     else:
         return f"File {file_name} does not exist."
+    
+
+
+def get_basic_table_info(filename):
+    # Construct the full filepath
+    filepath = os.path.join(gpt_workspace, filename)
+
+    try:
+        # Load the DataFrame from the CSV file
+        data = pd.read_csv(filepath)
+
+        # Get basic info
+        info_dict = {
+            'columns': list(data.columns),
+            'num_rows': len(data),
+            'num_columns': len(data.columns),
+            'dtypes': dict(data.dtypes)
+        }
+
+        return info_dict
+    except Exception as e:
+        return str(e)
+
+
+def get_rows_by_index(filename, rows):
+    # Construct the full filepath
+    filepath = os.path.join(gpt_workspace, filename)
+
+    try:
+        # Load the DataFrame from the CSV file
+        data = pd.read_csv(filepath)
+
+        # Select only the rows with indices in the rows list
+        selected_rows = data.iloc[rows]
+
+        # Convert the selected rows back into CSV format
+        csv_output = selected_rows.to_csv(index=False)
+
+        return csv_output
+    except Exception as e:
+        return str(e)
+
+
+
+def rename_columns(filename, old_names, new_names):
+    # Check if both lists have the same length
+    if len(old_names) != len(new_names):
+        return "Error: Old names and new names lists must have the same length."
+
+    # Create a dictionary from the lists of old and new names
+    column_dict = dict(zip(old_names, new_names))
+
+    filepath = os.path.join(gpt_workspace, filename)
+    try:
+        # Load the DataFrame from the CSV file
+        data = pd.read_csv(filepath)
+
+        # Rename the columns
+        data.rename(columns=column_dict, inplace=True)
+
+        # Write the DataFrame back to the CSV file
+        data.to_csv(filepath, index=False)
+
+        return f"Columns {old_names} were renamed to {new_names} in '{filename}' successfully!"
+    except Exception as e:
+        return f"An error occurred: {e}"
+
+
 
 def read_csv_file(filename):
     

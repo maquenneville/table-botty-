@@ -6,14 +6,14 @@ Created on Wed Jun 14 00:21:10 2023
 """
 
 from function_bot import FunctionBot
-from gpt_tools import get_columns, populate_column_by_function, drop_rows_by_condition, condense_table, add_csv_column, delete_csv_column, read_csv_file, script_dir, gpt_workspace
+from gpt_tools import rename_columns, get_rows_by_index, get_basic_table_info, get_columns, populate_column_by_function, drop_rows_by_condition, condense_table, add_csv_column, delete_csv_column, read_csv_file, script_dir, gpt_workspace
 import os
 import threading
 import sys
 import time
 import shutil
 
-tool_calls = {'get_columns': get_columns, 'populate_column_by_function': populate_column_by_function, 'drop_rows_by_condition': drop_rows_by_condition, 'condense_table': condense_table, 'read_csv_file': read_csv_file, 'delete_csv_column': delete_csv_column, 'add_csv_column': add_csv_column}
+tool_calls = {'rename_columns': rename_columns, 'get_rows_by_index': get_rows_by_index, 'get_basic_table_info': get_basic_table_info, 'get_columns': get_columns, 'populate_column_by_function': populate_column_by_function, 'drop_rows_by_condition': drop_rows_by_condition, 'condense_table': condense_table, 'read_csv_file': read_csv_file, 'delete_csv_column': delete_csv_column, 'add_csv_column': add_csv_column}
 
 tool_descriptions = [
     
@@ -146,7 +146,67 @@ tool_descriptions = [
             },
             "required": ["file_name"],
         }
+    },
+    {
+        "name": "get_basic_table_info",
+        "description": "Returns basic information about a CSV file located in the directory specified by the 'gpt_workspace' global variable. This includes the column names, the number of rows, the number of columns, and the data type of each column.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the CSV file, including the .csv extension."
+                }
+            },
+            "required": ["filename"]
+        }
+    },
+    {
+        "name": "get_rows_by_index",
+        "description": "Returns a subset of rows from a CSV file located in the directory specified by the 'gpt_workspace' global variable. The rows are selected based on their index values and are returned as a single string in CSV format.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the CSV file, including the .csv extension."
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "description": "A list of index values specifying which rows to return. Indices start from 0."
+                }
+            },
+            "required": ["filename", "rows"]
+        }
+    },
+    {
+        "name": "rename_columns",
+        "description": "Renames selected columns in a CSV file located in the directory specified by the 'gpt_workspace' global variable. The CSV file is then resaved with the same name.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the CSV file, including the .csv extension."
+                },
+                "old_names": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "A list of old column names to be replaced."
+                },
+                "new_names": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "A list of new column names to replace the old ones."
+                }
+            },
+            "required": ["filename", "old_names", "new_names"]
+        }
     }
+
 
 ]
 
@@ -240,7 +300,7 @@ def main():
         # Generate a response and display it
         bot_response = bot.chat(user_input)
         spinner.stop()
-        print(f"\nAgent: {bot_response}\n")
+        print(f"\nTable Botty: {bot_response}\n")
 
 
 if __name__ == "__main__":
