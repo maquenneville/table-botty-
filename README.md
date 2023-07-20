@@ -2,8 +2,9 @@
 
 TableBotty is a powerful data table management assistant that leverages OpenAI's GPT models and custom tools via GPT function calling. It provides a user-friendly, lightweight interface to help with displaying, analyzing, and manipulating tables. TableBotty is capable of editing CSV files (for now, more filetypes to come), making it a perfect tool for tasks like data cleaning and pre-processing.  Current abilities include:
 
-- Reading and understanding general table info like column names, layout and expected values
-- Adding and dropping columns
+- Reading and understanding general table info like column names, number of rows and data types
+- Gathering and using row-specific data
+- Adding, dropping and renaming columns
 - Condensing tables with multiple entries per object
 - Dropping rows via plain english conditionals
 - Applying GPT-generated functions to columns, using other columns, to perform operations 
