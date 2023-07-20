@@ -54,8 +54,8 @@ class SimpleBot:
             max_tokens = 8000
             token_ceiling = 8000
         if self.model == "gpt-3.5-turbo-16k":
-            max_tokens = 15000
-            token_ceiling = 15000
+            max_tokens = 14000
+            token_ceiling = 14000
     
         tokens_used = sum([self._count_tokens(msg["content"]) for msg in messages])
         tokens_available = token_ceiling - tokens_used

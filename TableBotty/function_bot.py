@@ -23,6 +23,7 @@ class FunctionBot(SimpleBot):
     def _execute_function(self, function_name, function_args):
         if function_name in self.function_calls:
             try:
+                print(function_args)
                 return self.function_calls[function_name](**function_args)
             except Exception as e:
                 print(f"Function execution failed due to invalid arguments")

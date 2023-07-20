@@ -6,14 +6,14 @@ Created on Wed Jun 14 00:21:10 2023
 """
 
 from function_bot import FunctionBot
-from gpt_tools import rename_columns, get_rows_by_index, get_basic_table_info, get_columns, populate_column_by_function, drop_rows_by_condition, condense_table, add_csv_column, delete_csv_column, read_csv_file, script_dir, gpt_workspace
+from gpt_tools import sql_to_csv, execute_sql, csv_to_sql, add_row_with_values, get_column_stats, rename_columns, get_rows_by_index, get_basic_table_info, get_columns, populate_column_by_function, drop_rows_by_condition, condense_table, add_csv_column, delete_csv_column, read_csv_file, script_dir, gpt_workspace
 import os
 import threading
 import sys
 import time
 import shutil
 
-tool_calls = {'rename_columns': rename_columns, 'get_rows_by_index': get_rows_by_index, 'get_basic_table_info': get_basic_table_info, 'get_columns': get_columns, 'populate_column_by_function': populate_column_by_function, 'drop_rows_by_condition': drop_rows_by_condition, 'condense_table': condense_table, 'read_csv_file': read_csv_file, 'delete_csv_column': delete_csv_column, 'add_csv_column': add_csv_column}
+tool_calls = {'add_row_with_values': add_row_with_values, 'get_column_stats': get_column_stats, 'rename_columns': rename_columns, 'get_rows_by_index': get_rows_by_index, 'get_basic_table_info': get_basic_table_info, 'get_columns': get_columns, 'populate_column_by_function': populate_column_by_function, 'drop_rows_by_condition': drop_rows_by_condition, 'condense_table': condense_table, 'read_csv_file': read_csv_file, 'delete_csv_column': delete_csv_column, 'add_csv_column': add_csv_column}
 
 tool_descriptions = [
     
@@ -205,8 +205,104 @@ tool_descriptions = [
             },
             "required": ["filename", "old_names", "new_names"]
         }
+    },
+    {
+        "name": "get_column_stats",
+        "description": "Extracts basic statistics from a specified column in a CSV file located in the directory specified by the 'gpt_workspace' global variable. If the column is numeric, the statistics include count, mean, standard deviation, minimum, 25th percentile, median, 75th percentile, and maximum. If the column is text-based, the statistics include the number of unique values, the most frequent value, frequency of the most frequent value, shortest length, longest length, and average length.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the CSV file, including the .csv extension."
+                },
+                "column_name": {
+                    "type": "string",
+                    "description": "The name of the column from which to extract statistics."
+                },
+            },
+            "required": ["filename", "column_name"],
+        }
+    },
+    {
+        "name": "add_row_with_values",
+        "description": "Appends a row with specified values to a CSV file located in the directory specified by the 'gpt_workspace' global variable. The CSV file is then resaved with the same name.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the CSV file, including the .csv extension."
+                },
+                "row_values": {
+                    "type": "array",
+                    "items": { "type": ["integer", "string", "number"] },
+                    "description": "A list of values to be appended as a new row. The list must have the same number of elements as there are columns in the CSV file."
+                }
+            },
+            "required": ["filename", "row_values"]
+        }
     }
 
+
+]
+
+db_tool_calls = {'sql_to_csv': sql_to_csv, 'execute_sql': execute_sql, 'csv_to_sql': csv_to_sql}
+
+db_tool_descriptions = [    {
+        "name": "csv_to_sql",
+        "description": "Saves a CSV file as a table in a SQL database. The type of the database ('sqlite', 'mysql', or 'postgresql') and the database credentials are read from a 'config.ini' file in the working directory. The SQL table is created or replaced if it already exists.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the CSV file, including the .csv extension."
+                },
+                "table_name": {
+                    "type": "string",
+                    "description": "The name of the SQL table to create or replace."
+                }
+            },
+            "required": ["filename", "table_name"]
+        }
+    },
+    {
+        "name": "sql_to_csv",
+        "description": "Reads data from a specified table of a SQL database and writes it to a CSV file in the 'gpt_workspace' directory. The database details and credentials are read from a 'config.ini' file. The database type can be 'SQLite', 'MySQL', or 'PostgreSQL'.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "table_name": {
+                    "type": "string",
+                    "description": "The name of the table from which the data is to be read."
+                },
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the CSV file to be created, including the .csv extension."
+                },
+            },
+            "required": ["table_name", "filename"]
+        }
+    },
+    {
+        "name": "execute_sql",
+        "description": "Executes a SQL query on a specified table of a database. The database details and credentials are read from a 'config.ini' file. The database type can be 'SQLite', 'MySQL', or 'PostgreSQL'. If the SQL query returns data, the result set is returned as a dictionary. Otherwise, a success message is returned.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "table_name": {
+                    "type": "string",
+                    "description": "The name of the table on which the SQL query is to be executed."
+                },
+                "sql": {
+                    "type": "string",
+                    "description": "The SQL query to be executed, which can be a single or multiline string."
+                },
+            },
+            "required": ["table_name", "sql"]
+        }
+    }
 
 ]
 
@@ -255,6 +351,7 @@ def main():
     print('\n Warning: any files in the gpt_workspace folder are subject to change if requested by the user, ensure you have backup copies elsewhere\n')
 
     bot_primer = "You are my Data Table Management Assistant.  Your job is to help the user by displaying, analyzing, manipulating tables and anything else the user might need regarding tables.  When necessary, you will use the function tools provided to you to perform the user requests to the best of your ability.  If instructions are unclear at any point, clarify with the user before proceeding.  You have permission to view, analyze and edit the files specified by the user and ONLY those files."
+    db_bot_primer = "You are my Database Management Assistant.  Your job is to help the user by displaying, analyzing, manipulating tables and anything else the user might need regarding tables in a database.  When necessary, you will use the function tools provided to you to perform the user requests to the best of your ability.  If instructions are unclear at any point, clarify with the user before proceeding.  You have permission to view, analyze and edit the database specified by the user and ONLY that database."
     # Instantiate the bot
     bot = FunctionBot(primer=bot_primer, function_desc=tool_descriptions, function_calls=tool_calls)
 
@@ -276,6 +373,7 @@ def main():
             print("'exit' - End the chat.")
             print("'smart agent' - Switch to GPT-4 model for responses.")
             print("'fast agent' - Switch back to GPT-3.5 Turbo model for responses.\n")
+            print("'database' - Switch to using tools for interacting with the SQL database specified in the config.ini file.\n")
             continue
         
         elif user_input.lower() == "tools":
@@ -295,13 +393,35 @@ def main():
             bot.long_agent()
             print("Switched back to fast agent (GPT-3.5 Turbo) for responses.")
             continue
-
+        
+        elif user_input.lower() == "database":
+            bot = FunctionBot(primer=db_bot_primer, function_desc=db_tool_descriptions, function_calls=db_tool_calls)
+            print("Activated new bot specifically for interacting with your database")
+            continue
         spinner.start()
         # Generate a response and display it
         bot_response = bot.chat(user_input)
         spinner.stop()
         print(f"\nTable Botty: {bot_response}\n")
 
+# =============================================================================
+# import sqlite3
+# from sqlite3 import Error
+# 
+# def create_connection():
+#     conn = None;
+#     try:
+#         conn = sqlite3.connect('gpt.db')  # This will create a database file named 'my_database.db' if it doesn't exist
+#         print(sqlite3.version)
+#     except Error as e:
+#         print(e)
+#     finally:
+#         if conn:
+#             conn.close()
+# =============================================================================
 
+
+    
 if __name__ == "__main__":
     main()
+    #create_connection()

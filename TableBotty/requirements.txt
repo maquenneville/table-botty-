@@ -2,3 +2,6 @@ openai
 tiktoken
 pandas
 numpy
+sqlalchemy
+pymysql
+psycopg2
