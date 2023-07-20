@@ -13,13 +13,13 @@ TableBotty is a powerful data table management assistant that leverages OpenAI's
 - When switched to the "database" mode, can execute any sql command in the specified database (using the "database" command)
 
 # Installation
-1. Install Python (version 3.6 or higher is recommended).
+1. Install Python (version 3.8 or higher is recommended).
 
 2. Clone this repository:
 
 git clone https://github.com/maquenneville/TableBotty.git
 
-3. Update the config.ini file with your personal OpenAI API key
+3. Update the config.ini file with your personal OpenAI API key and optional database credentials (ensure you set the database type)
 
 4. Navigate to the TableBotty directory:
 
