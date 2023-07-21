@@ -6,40 +6,40 @@ Created on Wed Jun 14 00:21:10 2023
 """
 
 from function_bot import FunctionBot
-from gpt_tools import sql_to_csv, execute_sql, csv_to_sql, add_row_with_values, get_column_stats, rename_columns, get_rows_by_index, get_basic_table_info, get_columns, populate_column_by_function, drop_rows_by_condition, condense_table, add_csv_column, delete_csv_column, read_csv_file, script_dir, gpt_workspace
+from gpt_tools import sql_to_csv, execute_sql, csv_to_sql, add_row_with_values, get_column_stats, rename_columns, get_rows_by_index, get_basic_table_info, get_columns, populate_column_by_function, drop_rows_by_condition, condense_table, add_column, delete_column, read_file_sample, script_dir, gpt_workspace
 import os
 import threading
 import sys
 import time
 import shutil
 
-tool_calls = {'add_row_with_values': add_row_with_values, 'get_column_stats': get_column_stats, 'rename_columns': rename_columns, 'get_rows_by_index': get_rows_by_index, 'get_basic_table_info': get_basic_table_info, 'get_columns': get_columns, 'populate_column_by_function': populate_column_by_function, 'drop_rows_by_condition': drop_rows_by_condition, 'condense_table': condense_table, 'read_csv_file': read_csv_file, 'delete_csv_column': delete_csv_column, 'add_csv_column': add_csv_column}
+tool_calls = {'add_row_with_values': add_row_with_values, 'get_column_stats': get_column_stats, 'rename_columns': rename_columns, 'get_rows_by_index': get_rows_by_index, 'get_basic_table_info': get_basic_table_info, 'get_columns': get_columns, 'populate_column_by_function': populate_column_by_function, 'drop_rows_by_condition': drop_rows_by_condition, 'condense_table': condense_table, 'read_file_sample': read_file_sample, 'delete_column': delete_column, 'add_column': add_column}
 
 tool_descriptions = [
     
     {
-        "name": "read_csv_file",
-        "description": "Read the first 5 rows from a CSV file and return them as CSV text. The CSV file is located in the directory specified by the 'gpt_workspace' global variable.",
+        "name": "read_file_sample",
+        "description": "Read the first 5 rows from a CSV or Excel file and return them as CSV text. The file is located in the directory specified by the 'gpt_workspace' global variable.",
         "parameters": {
             "type": "object",
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The name of the CSV file, including the .csv extension."
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
                 },
             },
             "required": ["filename"],
         }
     },
     {
-        "name": "delete_csv_column",
-        "description": "Deletes a specified column from a CSV file located in the directory specified by the 'gpt_workspace' global variable and resaves the CSV file with the same name.",
+        "name": "delete_column",
+        "description": "Deletes a specified column from a CSV or Excel file located in the directory specified by the 'gpt_workspace' global variable and resaves the file with the same name.",
         "parameters": {
             "type": "object",
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The name of the CSV file, including the .csv extension."
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
                 },
                 "column_name": {
                     "type": "string",
@@ -50,14 +50,14 @@ tool_descriptions = [
         }
     },
     {
-        "name": "add_csv_column",
-        "description": "Adds a specified column filled with NaN values to a CSV file located in the directory specified by the 'gpt_workspace' global variable and resaves the CSV file with the same name.",
+        "name": "add_column",
+        "description": "Adds a specified column filled with NaN values to a CSV or Excel file located in the directory specified by the 'gpt_workspace' global variable and resaves the file with the same name.",
         "parameters": {
             "type": "object",
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The name of the CSV file, including the .csv extension."
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
                 },
                 "column_name": {
                     "type": "string",
@@ -69,13 +69,13 @@ tool_descriptions = [
     },
     {
         "name": "condense_table",
-        "description": "Condenses a CSV file located in the directory specified by the 'gpt_workspace' global variable based on a target column. For each unique value in the target column, it sums the values in numeric columns and concatenates the values in non-numeric columns. The condensed CSV file is then resaved with the same name.",
+        "description": "Condenses a CSV or Excel file located in the directory specified by the 'gpt_workspace' global variable based on a target column. For each unique value in the target column, it sums the values in numeric columns and concatenates the values in non-numeric columns. The condensed file is then resaved with the same name.",
         "parameters": {
             "type": "object",
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The name of the CSV file, including the .csv extension."
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
                 },
                 "column_name": {
                     "type": "string",
@@ -87,13 +87,13 @@ tool_descriptions = [
     },
     {
         "name": "drop_rows_by_condition",
-        "description": "Drops rows from a CSV file located in the directory specified by the 'gpt_workspace' global variable based on a condition applied to a target column. The CSV file is then resaved with the same name.",
+        "description": "Drops rows from a CSV or Excel file located in the directory specified by the 'gpt_workspace' global variable based on a condition applied to a target column. The file is then resaved with the same name.",
         "parameters": {
             "type": "object",
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The name of the CSV file, including the .csv extension."
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
                 },
                 "column_name": {
                     "type": "string",
@@ -109,13 +109,13 @@ tool_descriptions = [
     },
     {
         "name": "populate_column_by_function",
-        "description": "Applies a function to one or more target columns of a CSV file located in the directory specified by the 'gpt_workspace' global variable, creating a new results column. The CSV file is then resaved with the same name.",
+        "description": "Applies a function to one or more target columns of a CSV or Excel file located in the directory specified by the 'gpt_workspace' global variable, creating a new results column. The file is then resaved with the same name.",
         "parameters": {
             "type": "object",
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The name of the CSV file, including the .csv extension."
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
                 },
                 "target_columns": {
                     "type": ["string", "array"],
@@ -135,27 +135,27 @@ tool_descriptions = [
     },
     {
         "name": "get_columns",
-        "description": "Read a CSV file and return the names of its columns",
+        "description": "Get the list of column names from a file. The file should be in CSV or Excel format and located in the 'gpt_workspace' directory.",
         "parameters": {
             "type": "object",
             "properties": {
                 "file_name": {
                     "type": "string",
-                    "description": "The name of the CSV file",
+                    "description": "The name of the file, including the file extension (.csv or .xlsx)."
                 }
             },
-            "required": ["file_name"],
+            "required": ["file_name"]
         }
     },
     {
         "name": "get_basic_table_info",
-        "description": "Returns basic information about a CSV file located in the directory specified by the 'gpt_workspace' global variable. This includes the column names, the number of rows, the number of columns, and the data type of each column.",
+        "description": "Get basic information about the table in a file. The file should be in CSV or Excel format and located in the 'gpt_workspace' directory. The information includes the list of column names, the number of rows, the number of columns, and the data types of each column.",
         "parameters": {
             "type": "object",
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The name of the CSV file, including the .csv extension."
+                    "description": "The name of the file, including the file extension (.csv or .xlsx)."
                 }
             },
             "required": ["filename"]
@@ -163,13 +163,13 @@ tool_descriptions = [
     },
     {
         "name": "get_rows_by_index",
-        "description": "Returns a subset of rows from a CSV file located in the directory specified by the 'gpt_workspace' global variable. The rows are selected based on their index values and are returned as a single string in CSV format.",
+        "description": "Returns a subset of rows from a CSV or Excel file located in the directory specified by the 'gpt_workspace' global variable. The rows are selected based on their index values and are returned as a single string in CSV format.",
         "parameters": {
             "type": "object",
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The name of the CSV file, including the .csv extension."
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
                 },
                 "rows": {
                     "type": "array",
@@ -184,13 +184,13 @@ tool_descriptions = [
     },
     {
         "name": "rename_columns",
-        "description": "Renames selected columns in a CSV file located in the directory specified by the 'gpt_workspace' global variable. The CSV file is then resaved with the same name.",
+        "description": "Renames selected columns in a CSV or Excel file located in the directory specified by the 'gpt_workspace' global variable. The file is then resaved with the same name.",
         "parameters": {
             "type": "object",
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The name of the CSV file, including the .csv extension."
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
                 },
                 "old_names": {
                     "type": "array",
@@ -208,13 +208,13 @@ tool_descriptions = [
     },
     {
         "name": "get_column_stats",
-        "description": "Extracts basic statistics from a specified column in a CSV file located in the directory specified by the 'gpt_workspace' global variable. If the column is numeric, the statistics include count, mean, standard deviation, minimum, 25th percentile, median, 75th percentile, and maximum. If the column is text-based, the statistics include the number of unique values, the most frequent value, frequency of the most frequent value, shortest length, longest length, and average length.",
+        "description": "Extracts basic statistics from a specified column in a CSV or Excel file located in the directory specified by the 'gpt_workspace' global variable. If the column is numeric, the statistics include count, mean, standard deviation, minimum, 25th percentile, median, 75th percentile, and maximum. If the column is text-based, the statistics include the number of unique values, the most frequent value, frequency of the most frequent value, shortest length, longest length, and average length.",
         "parameters": {
             "type": "object",
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The name of the CSV file, including the .csv extension."
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
                 },
                 "column_name": {
                     "type": "string",
@@ -226,13 +226,13 @@ tool_descriptions = [
     },
     {
         "name": "add_row_with_values",
-        "description": "Appends a row with specified values to a CSV file located in the directory specified by the 'gpt_workspace' global variable. The CSV file is then resaved with the same name.",
+        "description": "Appends a row with specified values to a CSV or Excel file located in the directory specified by the 'gpt_workspace' global variable. The file is then resaved with the same name.",
         "parameters": {
             "type": "object",
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The name of the CSV file, including the .csv extension."
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
                 },
                 "row_values": {
                     "type": "array",
@@ -374,29 +374,34 @@ def main():
             print("'smart agent' - Switch to GPT-4 model for responses.")
             print("'fast agent' - Switch back to GPT-3.5 Turbo model for responses.\n")
             print("'database' - Switch to using tools for interacting with the SQL database specified in the config.ini file.\n")
+            print("\n")
             continue
         
         elif user_input.lower() == "tools":
             print("Tools:\n")
             tool_list_string = "\n\n".join(f"{tool['name']}: {tool['description']}" for tool in tool_descriptions)
             print(tool_list_string)
+            print("\n")
             continue
         
         # If user wants to switch to 'gpt-4'
         elif user_input.lower() == "smart agent":
             bot.smart_agent()
             print("Switched to smart agent (GPT-4) for responses.")
+            print("\n")
             continue
 
         # If user wants to switch back to 'gpt-3.5-turbo'
         elif user_input.lower() == "fast agent":
             bot.long_agent()
             print("Switched back to fast agent (GPT-3.5 Turbo) for responses.")
+            print("\n")
             continue
         
         elif user_input.lower() == "database":
             bot = FunctionBot(primer=db_bot_primer, function_desc=db_tool_descriptions, function_calls=db_tool_calls)
             print("Activated new bot specifically for interacting with your database")
+            print("\n")
             continue
         spinner.start()
         # Generate a response and display it
