@@ -6,14 +6,14 @@ Created on Wed Jun 14 00:21:10 2023
 """
 
 from function_bot import FunctionBot
-from gpt_tools import sql_to_csv, execute_sql, csv_to_sql, add_row_with_values, get_column_stats, rename_columns, get_rows_by_index, get_basic_table_info, get_columns, populate_column_by_function, drop_rows_by_condition, condense_table, add_column, delete_column, read_file_sample, script_dir, gpt_workspace
+from gpt_tools import get_cell_info_excel, adjust_column_width_excel, change_font_excel_cells, sql_to_csv, execute_sql, csv_to_sql, add_row_with_values, get_column_stats, rename_columns, get_rows_by_index, get_basic_table_info, get_columns, populate_column_by_function, drop_rows_by_condition, condense_table, add_column, delete_column, read_file_sample, script_dir, gpt_workspace
 import os
 import threading
 import sys
 import time
 import shutil
 
-tool_calls = {'add_row_with_values': add_row_with_values, 'get_column_stats': get_column_stats, 'rename_columns': rename_columns, 'get_rows_by_index': get_rows_by_index, 'get_basic_table_info': get_basic_table_info, 'get_columns': get_columns, 'populate_column_by_function': populate_column_by_function, 'drop_rows_by_condition': drop_rows_by_condition, 'condense_table': condense_table, 'read_file_sample': read_file_sample, 'delete_column': delete_column, 'add_column': add_column}
+tool_calls = {'get_cell_info_excel': get_cell_info_excel, 'adjust_column_width_excel': adjust_column_width_excel, 'change_font_excel_cells': change_font_excel_cells, 'add_row_with_values': add_row_with_values, 'get_column_stats': get_column_stats, 'rename_columns': rename_columns, 'get_rows_by_index': get_rows_by_index, 'get_basic_table_info': get_basic_table_info, 'get_columns': get_columns, 'populate_column_by_function': populate_column_by_function, 'drop_rows_by_condition': drop_rows_by_condition, 'condense_table': condense_table, 'read_file_sample': read_file_sample, 'delete_column': delete_column, 'add_column': add_column}
 
 tool_descriptions = [
     
@@ -242,7 +242,70 @@ tool_descriptions = [
             },
             "required": ["filename", "row_values"]
         }
+    },
+    {
+        "name": "change_font_excel_cells",
+        "description": "Changes the font, size, and color of specific cells in an Excel file. The new font and color are applied to all cells specified in the 'cell_positions' list. The file is saved after the changes.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the Excel file, including the .xlsx extension."
+                },
+                "cell_positions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "A list of cell positions (e.g., 'A1', 'B2') where the font should be changed."
+                },
+                "font_name": {
+                    "type": "string",
+                    "description": "The name of the font to apply to the cells."
+                },
+                "font_size": {
+                    "type": "integer",
+                    "description": "The size of the font to apply to the cells."
+                },
+                "font_color": {
+                    "type": "string",
+                    "description": "The color of the font to apply to the cells. Must be an RGB string (e.g., 'FFFFFF' for white)."
+                }
+            },
+            "required": ["filename", "cell_positions", "font_name", "font_size", "font_color"]
+        }
+    },
+    {
+        "name": "adjust_column_width_excel",
+        "description": "Adjusts the width of specified columns in an Excel file. The new widths are applied to all columns specified in the 'columns' list. The file is saved after the changes.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the Excel file, including the .xlsx extension."
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "A list of column names (e.g., 'A', 'B') where the width should be adjusted."
+                },
+                "widths": {
+                    "type": ["array", "integer"],
+                    "items": {
+                        "type": "integer"
+                    },
+                    "description": "The new width(s) to apply to the column(s). Can be a single integer (applies to all) or a list of integers corresponding to each column."
+                }
+            },
+            "required": ["filename", "columns", "widths"]
+        }
     }
+
+
 
 
 ]
@@ -302,7 +365,29 @@ db_tool_descriptions = [    {
             },
             "required": ["table_name", "sql"]
         }
+    },
+    {
+        "name": "get_cell_info_excel",
+        "description": "Retrieves information about specific cells in an Excel file. For each cell specified in the 'cell_positions' list, it returns the font, font size, font color, width, and height.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the Excel file, including the .xlsx extension."
+                },
+                "cell_positions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "A list of cell positions (e.g., 'A1', 'B2') for which information should be retrieved."
+                }
+            },
+            "required": ["filename", "cell_positions"]
+        }
     }
+
 
 ]
 

@@ -470,6 +470,103 @@ def execute_sql(table_name, sql):
         return f"An error occurred: {e}"
 
 
+### EXCEL ONLY TOOLS ###
+
+from openpyxl import load_workbook
+from openpyxl.styles import Font, Color
+
+def change_font_excel_cells(filename, cell_positions, font_name, font_size, font_color):
+    try:
+        # Load the Excel Workbook
+        file_path = os.path.join(gpt_workspace, filename)
+        if os.path.exists(file_path):
+            wb = load_workbook(file_path)
+        else:
+            return f"File {filename} does not exist."
+
+        # Get the active worksheet
+        ws = wb.active
+
+        # Create a Font object
+        font = Font(name=font_name, size=font_size, color=Color(rgb=font_color))
+
+        # Apply the font to the cells
+        for cell_position in cell_positions:
+            cell = ws[cell_position]
+            cell.font = font
+
+        # Save the workbook
+        wb.save(file_path)
+
+        return f"Font and color changed successfully for cells {cell_positions} in file '{filename}'!"
+    except Exception as e:
+        return f"An error occurred: {e}"
+
+    
+
+def adjust_column_width_excel(filename, columns, widths):
+    try:
+        # Load the Excel Workbook
+        file_path = os.path.join(gpt_workspace, filename)
+        if os.path.exists(file_path):
+            wb = load_workbook(file_path)
+        else:
+            return f"File {filename} does not exist."
+
+        # Get the active worksheet
+        ws = wb.active
+
+        # Ensure columns and widths lists are of equal length, or if single width is provided for all
+        if isinstance(widths, list):
+            if len(columns) != len(widths):
+                return f"Error: Length of columns list ({len(columns)}) doesn't match length of widths list ({len(widths)})."
+        else:
+            widths = [widths]*len(columns)
+
+        # Apply the width to the columns
+        for column, width in zip(columns, widths):
+            ws.column_dimensions[column].width = width
+
+        # Save the workbook
+        wb.save(file_path)
+
+        return f"Width adjusted successfully for columns {columns} in file '{filename}'!"
+    except Exception as e:
+        return f"An error occurred: {e}"
+
+
+
+def get_cell_info_excel(filename, cell_positions):
+    try:
+        # Load the Excel Workbook
+        file_path = os.path.join(gpt_workspace, filename)
+        if os.path.exists(file_path):
+            wb = load_workbook(file_path)
+        else:
+            return f"File {filename} does not exist."
+
+        # Get the active worksheet
+        ws = wb.active
+
+        # Initialize an empty dictionary for cell information
+        cell_info = {}
+
+        # Fetch the info for each cell
+        for cell_position in cell_positions:
+            cell = ws[cell_position]
+            
+            # Store cell info in a dictionary
+            cell_info[cell_position] = {
+                'font': cell.font.name,
+                'font_size': cell.font.sz,
+                'font_color': cell.font.color.rgb,
+                'width': ws.column_dimensions[cell.column_letter].width,
+                'height': ws.row_dimensions[cell.row].height
+            }
+
+        return cell_info
+    except Exception as e:
+        return f"An error occurred: {e}"
 
 
 
