@@ -145,6 +145,24 @@ def get_rows_by_index(filename, rows):
         return csv_output
     except Exception as e:
         return str(e)
+    
+def find_rows_by_value(filename, target_column, comparison_column, value):
+    try:
+        # Load the DataFrame using the helper function
+        data = read_file(filename)
+
+        # If it's a string, an error has occurred so return the error message
+        if isinstance(data, str):
+            return data
+
+        # Find rows where the comparison column's value is equal to the given value
+        result_rows = data[data[comparison_column] == value]
+
+        # Return the values of the target column for these rows
+        return result_rows[target_column]
+    except Exception as e:
+        return f"An error occurred: {e}"
+
 
 
 def add_row_with_values(filename, row_values):
@@ -339,24 +357,54 @@ def populate_column_by_function(filename, target_columns, result_column, func_de
         if isinstance(data, str):
             return data
 
-        # Check if the target_columns exist in the DataFrame
-        missing_columns = [col for col in target_columns if col not in data.columns]
-        if missing_columns:
-            return f"Target columns '{missing_columns}' not found in the file."
+        # If target_columns is specified
+        if target_columns:
+            # Check if the target_columns exist in the DataFrame
+            missing_columns = [col for col in target_columns if col not in data.columns]
+            if missing_columns:
+                return f"Target columns '{missing_columns}' not found in the file."
 
-        # Apply the function to the target columns to create the result column
-        # If there's only one target column, we apply the function directly
-        if len(target_columns) == 1:
-            data[result_column] = data[target_columns[0]].apply(func)
-        else:  # If there are multiple target columns, we need to apply function row-wise
-            data[result_column] = data[target_columns].apply(lambda row: func(*row), axis=1)
+            # Apply the function to the target columns to create the result column
+            # If there's only one target column, we apply the function directly
+            if len(target_columns) == 1:
+                data[result_column] = data[target_columns[0]].apply(func)
+            else:  # If there are multiple target columns, we need to apply function row-wise
+                data[result_column] = data[target_columns].apply(lambda row: func(*row), axis=1)
+        else:  # If no specific columns are specified, apply the function row-wise to the whole DataFrame
+            data[result_column] = data.apply(func, axis=1)
 
         # Write the DataFrame back to the file using the helper function
         write_file(data, filename)
 
-        return f"Column '{result_column}' created successfully using function '{func_definition}' on column(s) '{target_columns}'!"
+        return f"Column '{result_column}' created successfully using function '{func_definition}' on column(s) '{target_columns if target_columns else 'all columns'}'!"
     except Exception as e:
         return f"An error occurred: {e}"
+
+
+def aggregate_dataframe_operations(filename, agg_operations):
+    try:
+        # Load the DataFrame using the helper function
+        data = read_file(filename)
+
+        # If it's a string, an error has occurred so return the error message
+        if isinstance(data, str):
+            return data
+
+        # Executing the agg_operations
+        global_scope = {'df': data, 'pd': pd, 'np': np}
+        exec(f"df = df.{agg_operations}", global_scope)
+        data = global_scope['df']
+
+        # Write the DataFrame back to the file using the helper function
+        output_filename = f"{os.path.splitext(filename)[0]}_pandas_working{get_file_type(filename)}"
+        write_file(data, output_filename)
+
+        return f"Aggregate operations completed successfully! The resulting DataFrame has been saved as '{output_filename}'."
+    except Exception as e:
+        return f"An error occurred: {e}"
+
+    
+
 
 
 ### DATABASE TOOLS ###

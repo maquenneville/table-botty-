@@ -6,14 +6,14 @@ Created on Wed Jun 14 00:21:10 2023
 """
 
 from function_bot import FunctionBot
-from gpt_tools import get_cell_info_excel, adjust_column_width_excel, change_font_excel_cells, sql_to_csv, execute_sql, csv_to_sql, add_row_with_values, get_column_stats, rename_columns, get_rows_by_index, get_basic_table_info, get_columns, populate_column_by_function, drop_rows_by_condition, condense_table, add_column, delete_column, read_file_sample, script_dir, gpt_workspace
+from gpt_tools import find_rows_by_value, aggregate_dataframe_operations, get_cell_info_excel, adjust_column_width_excel, change_font_excel_cells, sql_to_csv, execute_sql, csv_to_sql, add_row_with_values, get_column_stats, rename_columns, get_rows_by_index, get_basic_table_info, get_columns, populate_column_by_function, drop_rows_by_condition, condense_table, add_column, delete_column, read_file_sample, script_dir, gpt_workspace
 import os
 import threading
 import sys
 import time
 import shutil
 
-tool_calls = {'get_cell_info_excel': get_cell_info_excel, 'adjust_column_width_excel': adjust_column_width_excel, 'change_font_excel_cells': change_font_excel_cells, 'add_row_with_values': add_row_with_values, 'get_column_stats': get_column_stats, 'rename_columns': rename_columns, 'get_rows_by_index': get_rows_by_index, 'get_basic_table_info': get_basic_table_info, 'get_columns': get_columns, 'populate_column_by_function': populate_column_by_function, 'drop_rows_by_condition': drop_rows_by_condition, 'condense_table': condense_table, 'read_file_sample': read_file_sample, 'delete_column': delete_column, 'add_column': add_column}
+tool_calls = {'find_rows_by_value': find_rows_by_value, 'aggregate_dataframe_operations': aggregate_dataframe_operations, 'get_cell_info_excel': get_cell_info_excel, 'adjust_column_width_excel': adjust_column_width_excel, 'change_font_excel_cells': change_font_excel_cells, 'add_row_with_values': add_row_with_values, 'get_column_stats': get_column_stats, 'rename_columns': rename_columns, 'get_rows_by_index': get_rows_by_index, 'get_basic_table_info': get_basic_table_info, 'get_columns': get_columns, 'populate_column_by_function': populate_column_by_function, 'drop_rows_by_condition': drop_rows_by_condition, 'condense_table': condense_table, 'read_file_sample': read_file_sample, 'delete_column': delete_column, 'add_column': add_column}
 
 tool_descriptions = [
     
@@ -109,7 +109,7 @@ tool_descriptions = [
     },
     {
         "name": "populate_column_by_function",
-        "description": "Applies a function to one or more target columns of a CSV or Excel file located in the directory specified by the 'gpt_workspace' global variable, creating a new results column. The file is then resaved with the same name.",
+        "description": "Applies a function to one or more target columns, or all columns if none is specified, of a CSV or Excel file located in the directory specified by the 'gpt_workspace' global variable, creating a new results column. The file is then resaved with the same name.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -118,8 +118,8 @@ tool_descriptions = [
                     "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
                 },
                 "target_columns": {
-                    "type": ["string", "array"],
-                    "description": "The name(s) of the column(s) to be used as the input to the function. It can be a single string (for one column) or a list of strings (for multiple columns)."
+                    "type": ["string", "array", "null"],
+                    "description": "The name(s) of the column(s) to be used as the input to the function. It can be a single string (for one column), a list of strings (for multiple columns), or null for all columns."
                 },
                 "result_column": {
                     "type": "string",
@@ -127,10 +127,10 @@ tool_descriptions = [
                 },
                 "func_definition": {
                     "type": "string",
-                    "description": "The definition of the function to be applied to the target column(s), expressed as a string. This should be a full lambda function definition. If there's only one target column, 'x' should be used as the variable, e.g., 'lambda x: (x - 32) * 5.0/9.0' to convert degrees Fahrenheit to Celsius. If there are multiple target columns, use multiple variables, e.g., 'lambda x, y: x + y' to add two columns together."
-                },
+                    "description": "The definition of the function to be applied to the target column(s), expressed as a string. This should be a full lambda function definition. If there's only one target column, 'x' should be used as the variable, e.g., 'lambda x: (x - 32) * 5.0/9.0' to convert degrees Fahrenheit to Celsius. If there are multiple target columns, use multiple variables, e.g., 'lambda x, y: x + y' to add two columns together. If 'target_columns' is null, the function should be defined to accept a Series object and work row-wise against axis=1."
+                }
             },
-            "required": ["filename", "target_columns", "result_column", "func_definition"],
+            "required": ["filename", "result_column", "func_definition"]
         }
     },
     {
@@ -241,6 +241,50 @@ tool_descriptions = [
                 }
             },
             "required": ["filename", "row_values"]
+        }
+    },
+    {
+        "name": "aggregate_dataframe_operations",
+        "description": "Performs a chain of aggregate operations on a pandas DataFrame loaded from a CSV or Excel file. The operations are performed by executing a snippet of Python code supplied by the user. The final DataFrame after all operations are performed is saved as a new CSV or Excel file, with the filename format '{filename}_pandas_working.{csv or xlsx}'.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
+                },
+                "agg_operations": {
+                    "type": "string",
+                    "description": "A snippet of Python code representing a chain of aggregate operations to be performed on the DataFrame. The code should be formatted as if it were to be appended directly to a DataFrame variable named 'df', e.g., 'groupby('column').agg({'other_column': 'mean'})'."
+                }
+            },
+            "required": ["filename", "agg_operations"]
+        }
+    },
+    {
+        "name": "find_rows_by_value",
+        "description": "Finds the rows in a DataFrame loaded from a CSV or Excel file where the value of a specified comparison column is equal to a given value. The filename of the data file, the target column, the comparison column, and the value must be specified. Returns the values of the target column for these rows.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "The name of the CSV or Excel file, including the .csv or .xlsx extension."
+                },
+                "target_column": {
+                    "type": "string",
+                    "description": "The name of the target column, the values of which will be returned for the rows that match the condition."
+                },
+                "comparison_column": {
+                    "type": "string",
+                    "description": "The name of the comparison column, the values of which will be checked against the specified value."
+                },
+                "value": {
+                    "type": ["string", "number"],
+                    "description": "The value to compare against the values in the comparison column."
+                }
+            },
+            "required": ["filename", "target_column", "comparison_column", "value"]
         }
     },
     {
