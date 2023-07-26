@@ -11,6 +11,7 @@ TableBotty is a powerful data table management assistant that leverages OpenAI's
 - Dropping rows via plain english conditionals
 - Applying GPT-generated functions to columns, using other columns, to perform operations
 - When switched to the "database" mode, can create and execute any sql command in the specified database (using the "database" command) based on plain english
+- Limited Excel sheet format editing (font, color, size, etc)
 
 # Installation
 1. Install Python (version 3.8 or higher is recommended).
