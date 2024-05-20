@@ -9,7 +9,7 @@ Created on Tue Jun 13 22:12:14 2023
 import pandas as pd
 import numpy as np
 import configparser
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 import os
 
@@ -482,6 +482,45 @@ def sql_to_csv(table_name, filename):
         return f"An error occurred: {e}"
 
 
+# =============================================================================
+# def execute_sql(table_name, sql):
+#     # Parsing the configuration file
+#     config = configparser.ConfigParser()
+#     config.read('config.ini')
+# 
+#     # Getting the database type from the configuration
+#     database_type = config.get('database', 'type').lower()
+# 
+#     # Setting up the engine string based on the database type
+#     if database_type == 'sqlite':
+#         engine_string = f'sqlite:///{config.get("sqlite", "dbname")}.db'
+#     elif database_type == 'mysql':
+#         engine_string = f'mysql+pymysql://{config.get("mysql", "user")}:{config.get("mysql", "password")}@{config.get("mysql", "host")}:{config.get("mysql", "port")}/{config.get("mysql", "dbname")}'
+#     elif database_type == 'postgresql':
+#         engine_string = f'postgresql://{config.get("postgresql", "user")}:{config.get("postgresql", "password")}@{config.get("postgresql", "host")}:{config.get("postgresql", "port")}/{config.get("postgresql", "dbname")}'
+# 
+#     try:
+#         # Creating the engine
+#         engine = create_engine(engine_string)
+# 
+#         # Executing the SQL block
+#         result = engine.execute(sql)
+#         
+# 
+#         # Closing the connection
+#         engine.dispose()
+# 
+#         # Handling the results
+#         if result.returns_rows:
+#             return [dict(row) for row in result]
+#         else:
+#             return f"SQL block executed successfully on table '{table_name}'!"
+#     except Exception as e:
+#         print(e)
+#         return f"An error occurred: {e}"
+# =============================================================================
+    
+    
 def execute_sql(table_name, sql):
     # Parsing the configuration file
     config = configparser.ConfigParser()
@@ -503,18 +542,18 @@ def execute_sql(table_name, sql):
         engine = create_engine(engine_string)
 
         # Executing the SQL block
-        result = engine.execute(sql)
-        
-
-        # Closing the connection
-        engine.dispose()
-
-        # Handling the results
-        if result.returns_rows:
-            return [dict(row) for row in result]
-        else:
-            return f"SQL block executed successfully on table '{table_name}'!"
+        with engine.connect() as connection:
+            result = connection.execute(text(sql))
+            
+            # Handling the results
+            if result.returns_rows:
+                # Convert the result to a list of dictionaries
+                columns = result.keys()
+                return [dict(zip(columns, row)) for row in result]
+            else:
+                return f"SQL block executed successfully on table '{table_name}'!"
     except Exception as e:
+        print(e)
         return f"An error occurred: {e}"
 
 
