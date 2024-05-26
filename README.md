@@ -1,6 +1,6 @@
 # TableBotty - A Data Table Management Assistant
 
-TableBotty is a powerful data table management assistant that leverages OpenAI's GPT models and custom tools via GPT function calling. It provides a user-friendly, plain english, lightweight interface to help with displaying, analyzing, and manipulating tables. TableBotty at its base uses a specified csv or excel file in the gpt_workspace folder to perform edits and display info.  You can also switch to a database mode for interacting with database tables.  These features make it a perfect tool for tasks like data exploration, data cleaning, and pre-processing, with no coding or SQL knowledge required.  Current abilities include:
+TableBotty is a powerful data table management assistant that leverages OpenAI's GPT models and custom tools via GPT function calling. It provides a user-friendly, plain english, lightweight interface to help with displaying, analyzing, and manipulating tables. TableBotty at its base uses a specified csv or excel file in the gpt_workspace folder to perform edits and display info.  You can also switch to a database mode for interacting with database tables.  These features make it an effective tool for tasks like data exploration, data cleaning, and pre-processing, with no coding or SQL knowledge required.  Current abilities include:
 
 - Reading and understanding general table info like column names, number of rows and data types
 - Adding rows using either user-provided or gpt-provided values
